@@ -22,7 +22,7 @@ public record CreatePatientRequest(
         @NotBlank(message = "Phone number is required")
         String phoneNumber,
 
-        @NotBlank(message = "Date of birth is required")
+        @NotNull(message = "Date of birth is required")
         @Past(message = "Date of birth must be in the past")
         LocalDate dateOfBirth
 ) {}
