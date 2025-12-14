@@ -1,5 +1,7 @@
 package cat.teknos.oncolly.controllers;
 
+import cat.teknos.oncolly.dtos.user.UpdateProfileRequest;
+import cat.teknos.oncolly.services.UserService;
 import cat.teknos.oncolly.services.PatientService;
 import cat.teknos.oncolly.dtos.activity.ActivityResponse;
 import cat.teknos.oncolly.dtos.patient.CreatePatientRequest;
@@ -39,6 +41,7 @@ public class PatientController {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private EntityMapper mapper;
     @Autowired private PatientService patientService;
+    @Autowired private UserService userService;
 
     // GET ALL PATIENTS (For the logged-in Doctor)
     @GetMapping
@@ -105,6 +108,37 @@ public class PatientController {
         } else {
             logger.error("Unknown user type for email: {}", auth.getName());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Unknown user type");
+        }
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(@RequestBody UpdateProfileRequest request, Authentication auth) {
+        logger.info("User {} updating profile", auth.getName());
+        try {
+            AppUser updatedUser = userService.updateProfile(auth.getName(), request);
+            
+            if (updatedUser instanceof Patient patient) {
+                return ResponseEntity.ok(mapper.toPatientResponse(patient));
+            } else if (updatedUser instanceof Doctor doctor) {
+                return ResponseEntity.ok(mapper.toPatientResponse(doctor));
+            } else {
+                return ResponseEntity.ok("Profile updated");
+            }
+        } catch (IllegalArgumentException e) {
+            logger.warn("Error updating profile: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{patientId}")
+    public ResponseEntity<?> deletePatient(@PathVariable UUID patientId, Authentication auth) {
+        logger.info("Doctor {} deleting patient {}", auth.getName(), patientId);
+        try {
+            patientService.removePatientFromDoctor(patientId, auth.getName());
+            return ResponseEntity.ok("Patient removed from your list.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            logger.warn("Error deleting patient: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 }

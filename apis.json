@@ -66,6 +66,13 @@
             "createdAt": "2023-10-27T10:05:00"
           }
         ]
+      },
+      {
+        "method": "DELETE",
+        "url": "/api/patients/{patientId}",
+        "description": "Removes a patient from the currently logged-in doctor's list.",
+        "requestBody": null,
+        "responseBody": "Patient removed from your list."
       }
     ]
   },
@@ -84,6 +91,28 @@
           "email": "alice@example.com",
           "phoneNumber": "123456789",
           "dateOfBirth": "1980-01-01"
+        }
+      },
+      {
+        "method": "PUT",
+        "url": "/api/patients/profile",
+        "description": "Updates the profile information of the currently logged-in user (Doctor or Patient). All fields are optional.",
+        "requestBody": {
+          "firstName": "Alice",
+          "lastName": "Johnson",
+          "email": "alice.new@example.com",
+          "password": "newSecurePassword",
+          "phoneNumber": "987654321",
+          "dateOfBirth": "1981-02-02",
+          "specialization": "Oncology"
+        },
+        "responseBody": {
+          "id": "123e4567-e89b-12d3-a456-426614174000",
+          "firstName": "Alice",
+          "lastName": "Johnson",
+          "email": "alice.new@example.com",
+          "phoneNumber": "987654321",
+          "dateOfBirth": "1981-02-02"
         }
       }
     ]

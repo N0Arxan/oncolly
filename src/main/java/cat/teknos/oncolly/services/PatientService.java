@@ -17,6 +17,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 public class PatientService {
 
@@ -75,5 +77,26 @@ public class PatientService {
 
         doctorPatientRepo.save(link);
         logger.info("Patient {} successfully linked to Doctor {}", savedPatient.getId(), doctor.getId());
+    }
+
+    @Transactional
+    public void removePatientFromDoctor(UUID patientId, String doctorEmail) {
+        // 1. Fetch Doctor
+        AppUser user = userRepo.findByEmail(doctorEmail)
+                .orElseThrow(() -> new IllegalArgumentException("Doctor not found"));
+
+        if (!(user instanceof Doctor)) {
+            throw new IllegalStateException("Current user is not a doctor.");
+        }
+        Doctor doctor = (Doctor) user;
+
+        // 2. Find Relationship
+        DoctorPatientKey key = new DoctorPatientKey(doctor.getId(), patientId);
+        DoctorPatient relation = doctorPatientRepo.findById(key)
+                .orElseThrow(() -> new IllegalArgumentException("Patient is not assigned to you."));
+
+        // 3. Remove Relationship (Hard Delete)
+        doctorPatientRepo.delete(relation);
+        logger.info("Removed patient {} from doctor {}", patientId, doctorEmail);
     }
 }
