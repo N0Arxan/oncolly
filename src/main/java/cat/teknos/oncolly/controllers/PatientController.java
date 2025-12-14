@@ -94,9 +94,10 @@ public class PatientController {
         }
 
         // Fetch Data
-        List<ActivityResponse> response = activityRepo.findByPatientId(patientId).stream()
+        List<ActivityResponse> response = activityRepo.findByPatientIdAndIsDeletedFalse(patientId).stream()
                 .map(mapper::toActivityResponse)
                 .collect(Collectors.toList());
+
 
         return ResponseEntity.ok(response);
     }
