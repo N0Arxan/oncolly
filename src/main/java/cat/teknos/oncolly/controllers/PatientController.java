@@ -1,5 +1,6 @@
 package cat.teknos.oncolly.controllers;
 
+import cat.teknos.oncolly.services.PatientService;
 import cat.teknos.oncolly.dtos.activity.ActivityResponse;
 import cat.teknos.oncolly.dtos.patient.CreatePatientRequest;
 import cat.teknos.oncolly.dtos.patient.PatientResponse;
@@ -12,6 +13,8 @@ import cat.teknos.oncolly.models.enums.Role;
 import cat.teknos.oncolly.repositories.*;
 import cat.teknos.oncolly.utils.EntityMapper;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,17 +30,21 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/patients")
 public class PatientController {
 
+    private static final Logger logger = LoggerFactory.getLogger(PatientController.class);
+
     @Autowired private PatientRepository patientRepo;
     @Autowired private ActivityRepository activityRepo;
     @Autowired private DoctorPatientRepository doctorPatientRepo;
     @Autowired private UserRepository userRepo;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private EntityMapper mapper;
+    @Autowired private PatientService patientService;
 
     // GET ALL PATIENTS (For the logged-in Doctor)
     @GetMapping
     public ResponseEntity<List<PatientResponse>> getMyPatients(Authentication auth) {
         String email = auth.getName();
+        logger.info("Fetching patients for doctor: {}", email);
         Doctor doctor = (Doctor) userRepo.findByEmail(email).orElseThrow();
 
         List<DoctorPatient> relations = doctorPatientRepo.findByDoctorIdAndIsDeletedFalse(doctor.getId());
@@ -52,36 +59,19 @@ public class PatientController {
 
     @PostMapping
     public ResponseEntity<?> createPatient(@Valid @RequestBody CreatePatientRequest request, Authentication auth) {
-        if (userRepo.findByEmail(request.email()).isPresent()) {
-            return ResponseEntity.badRequest().body("Email already taken");
+        logger.info("Doctor {} creating new patient: {}", auth.getName(), request.email());
+        try {
+            patientService.createPatient(request, auth.getName());
+            return ResponseEntity.ok("Patient created and assigned to you.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            logger.error("Error creating patient: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-
-        Patient patient = new Patient();
-        patient.setEmail(request.email());
-        patient.setPasswordHash(passwordEncoder.encode(request.password()));
-        patient.setPhoneNumber(request.phoneNumber());
-        patient.setDateOfBirth(request.dateOfBirth());
-        patient.setRole(Role.PATIENT);
-
-        // Save Patient
-        Patient savedPatient = patientRepo.save(patient);
-
-        // Link Patient to Current Doctor
-        String doctorEmail = auth.getName();
-        Doctor doctor = (Doctor) userRepo.findByEmail(doctorEmail).orElseThrow();
-
-        DoctorPatient link = new DoctorPatient();
-        link.setId(new DoctorPatientKey(doctor.getId(), savedPatient.getId()));
-        link.setDoctor(doctor);
-        link.setPatient(savedPatient);
-
-        doctorPatientRepo.save(link);
-
-        return ResponseEntity.ok("Patient created and assigned to you.");
     }
 
     @GetMapping("/{patientId}/activities")
     public ResponseEntity<?> getPatientActivities(@PathVariable UUID patientId, Authentication auth) {
+        logger.info("Doctor {} requesting activities for patient {}", auth.getName(), patientId);
 
         // Identify the Doctor
         AppUser loggedInUser = userRepo.findByEmail(auth.getName()).orElseThrow();
@@ -90,6 +80,7 @@ public class PatientController {
         boolean isLinked = doctorPatientRepo.existsByDoctorIdAndPatientIdAndIsDeletedFalse(loggedInUser.getId(), patientId);
 
         if (!isLinked) {
+            logger.warn("Access denied: Doctor {} is not assigned to patient {}", auth.getName(), patientId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not assigned to this patient.");
         }
 
@@ -104,8 +95,16 @@ public class PatientController {
 
     @GetMapping("/profile")
     public ResponseEntity<?> getPatientProfile(Authentication auth) {
-        Patient patient = (Patient) userRepo.findByEmail(auth.getName()).orElseThrow();
-        PatientResponse response = mapper.toPatientResponse(patient);
-        return ResponseEntity.ok(response);
+        logger.info("User {} requesting profile", auth.getName());
+        AppUser user = userRepo.findByEmail(auth.getName()).orElseThrow();
+
+        if (user instanceof Patient patient) {
+            return ResponseEntity.ok(mapper.toPatientResponse(patient));
+        } else if (user instanceof Doctor doctor) {
+            return ResponseEntity.ok(mapper.toPatientResponse(doctor));
+        } else {
+            logger.error("Unknown user type for email: {}", auth.getName());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Unknown user type");
+        }
     }
 }

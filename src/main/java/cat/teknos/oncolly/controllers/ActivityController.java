@@ -10,6 +10,8 @@ import cat.teknos.oncolly.repositories.DoctorPatientRepository;
 import cat.teknos.oncolly.repositories.UserRepository;
 import cat.teknos.oncolly.utils.EntityMapper;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 @RequestMapping("/api")
 public class ActivityController {
 
+    private static final Logger logger = LoggerFactory.getLogger(ActivityController.class);
+
     @Autowired private ActivityRepository activityRepo;
     @Autowired private UserRepository userRepo;
     @Autowired private DoctorPatientRepository doctorPatientRepo;
@@ -34,6 +38,7 @@ public class ActivityController {
     // ==========================================
     @GetMapping("/activities")
     public ResponseEntity<List<ActivityResponse>> getActivities(Authentication auth) {
+        logger.info("Patient {} requesting their activities", auth.getName());
         // Identify the Patient
         Patient patient = (Patient) userRepo.findByEmail(auth.getName()).orElseThrow();
         List<Activity> activities = activityRepo.findByPatientIdAndIsDeletedFalse(patient.getId());
@@ -48,12 +53,14 @@ public class ActivityController {
     // ==========================================
     @PostMapping("/activities")
     public ResponseEntity<?> createActivity(@Valid @RequestBody CreateActivityRequest request, Authentication auth) {
+        logger.info("Patient {} syncing activity {}", auth.getName(), request.id());
 
         // Identify the Patient
         Patient patient = (Patient) userRepo.findByEmail(auth.getName()).orElseThrow();
 
         // Idempotency Check
         if (activityRepo.existsById(request.id())) {
+            logger.info("Activity {} already synced. Skipping.", request.id());
             return ResponseEntity.ok("Activity already synced.");
         }
 
@@ -75,6 +82,7 @@ public class ActivityController {
     // ==========================================
     @DeleteMapping("/activities/{activityId}")
     public ResponseEntity<?> deleteActivity(@PathVariable UUID activityId, Authentication auth) {
+        logger.info("Patient {} requesting deletion of activity {}", auth.getName(), activityId);
 
         Activity activity = activityRepo.findById(activityId)
                 .orElseThrow(() -> new RuntimeException("Activity not found"));
@@ -82,6 +90,7 @@ public class ActivityController {
         // Ensure the patient owns this activity
         String currentUserEmail = auth.getName();
         if (!activity.getPatient().getEmail().equals(currentUserEmail)) {
+            logger.warn("Unauthorized deletion attempt by {} on activity {}", currentUserEmail, activityId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You can only delete your own activities.");
         }
 

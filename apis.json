@@ -1,0 +1,176 @@
+[
+  {
+    "category": "Authentication",
+    "endpoints": [
+      {
+        "method": "POST",
+        "url": "/api/auth/login",
+        "description": "Authenticates a user (Doctor or Patient) and returns a JWT token.",
+        "requestBody": {
+          "email": "user@example.com",
+          "password": "secretPassword"
+        },
+        "responseBody": {
+          "token": "eyJhbGciOiJIUzI1NiJ9...",
+          "role": "DOCTOR",
+          "userId": "123e4567-e89b-12d3-a456-426614174000"
+        }
+      }
+    ]
+  },
+  {
+    "category": "Patients (Doctor Only)",
+    "endpoints": [
+      {
+        "method": "GET",
+        "url": "/api/patients",
+        "description": "Retrieves a list of all patients assigned to the currently logged-in doctor.",
+        "requestBody": null,
+        "responseBody": [
+          {
+            "id": "123e4567-e89b-12d3-a456-426614174001",
+            "firstName": "John",
+            "lastName": "Doe",
+            "email": "patient@example.com",
+            "phoneNumber": "123456789",
+            "dateOfBirth": "1990-01-01"
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "url": "/api/patients",
+        "description": "Creates a new patient account and links them to the currently logged-in doctor.",
+        "requestBody": {
+          "firstName": "John",
+          "lastName": "Doe",
+          "email": "newpatient@example.com",
+          "password": "securePassword123",
+          "phoneNumber": "555-0101",
+          "dateOfBirth": "1985-05-20"
+        },
+        "responseBody": "Patient created and assigned to you."
+      },
+      {
+        "method": "GET",
+        "url": "/api/patients/{patientId}/activities",
+        "description": "Retrieves the activity logs for a specific patient assigned to the doctor.",
+        "requestBody": null,
+        "responseBody": [
+          {
+            "id": "123e4567-e89b-12d3-a456-426614174002",
+            "patientId": "123e4567-e89b-12d3-a456-426614174001",
+            "activityType": "WALKING",
+            "value": "5000 steps",
+            "occurredAt": "2023-10-27T10:00:00",
+            "createdAt": "2023-10-27T10:05:00"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Profile (Shared)",
+    "endpoints": [
+      {
+        "method": "GET",
+        "url": "/api/patients/profile",
+        "description": "Retrieves the profile information of the currently logged-in user (Doctor or Patient).",
+        "requestBody": null,
+        "responseBody": {
+          "id": "123e4567-e89b-12d3-a456-426614174000",
+          "firstName": "Alice",
+          "lastName": "Smith",
+          "email": "alice@example.com",
+          "phoneNumber": "123456789",
+          "dateOfBirth": "1980-01-01"
+        }
+      }
+    ]
+  },
+  {
+    "category": "Activities (Patient Only)",
+    "endpoints": [
+      {
+        "method": "GET",
+        "url": "/api/activities",
+        "description": "Retrieves all activity logs for the currently logged-in patient.",
+        "requestBody": null,
+        "responseBody": [
+          {
+            "id": "123e4567-e89b-12d3-a456-426614174002",
+            "patientId": "123e4567-e89b-12d3-a456-426614174001",
+            "activityType": "HEART_RATE",
+            "value": "72 bpm",
+            "occurredAt": "2023-10-27T12:00:00",
+            "createdAt": "2023-10-27T12:01:00"
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "url": "/api/activities",
+        "description": "Creates or syncs a new activity log. ID is provided by the client for offline sync support.",
+        "requestBody": {
+          "id": "123e4567-e89b-12d3-a456-426614174002",
+          "activityType": "SLEEP",
+          "value": "8 hours",
+          "occurredAt": "2023-10-27T07:00:00"
+        },
+        "responseBody": "Activity saved."
+      },
+      {
+        "method": "DELETE",
+        "url": "/api/activities/{activityId}",
+        "description": "Soft deletes a specific activity log owned by the patient.",
+        "requestBody": null,
+        "responseBody": "Activity deleted."
+      }
+    ]
+  },
+  {
+    "category": "Appointments (Doctor Only)",
+    "endpoints": [
+      {
+        "method": "GET",
+        "url": "/api/appointments",
+        "description": "Retrieves all active appointments for the currently logged-in doctor.",
+        "requestBody": null,
+        "responseBody": [
+          {
+            "id": "123e4567-e89b-12d3-a456-426614174005",
+            "doctorId": "123e4567-e89b-12d3-a456-426614174000",
+            "doctorName": "Dr. Smith",
+            "patientId": "123e4567-e89b-12d3-a456-426614174001",
+            "patientName": "John Doe",
+            "startTime": "2023-11-01T09:00:00",
+            "endTime": "2023-11-01T09:30:00",
+            "status": "CONFIRMED",
+            "title": "Regular Checkup"
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "url": "/api/appointments",
+        "description": "Schedules a new appointment. Checks for time conflicts before saving.",
+        "requestBody": {
+          "id": "123e4567-e89b-12d3-a456-426614174005",
+          "patientId": "123e4567-e89b-12d3-a456-426614174001",
+          "startTime": "2023-11-01T09:00:00",
+          "endTime": "2023-11-01T09:30:00",
+          "title": "Consultation",
+          "doctorNotes": "Patient complained of headache."
+        },
+        "responseBody": "Appointment scheduled."
+      },
+      {
+        "method": "DELETE",
+        "url": "/api/appointments/{id}",
+        "description": "Cancels (soft deletes) a specific appointment owned by the doctor.",
+        "requestBody": null,
+        "responseBody": "Appointment cancelled."
+      }
+    ]
+  }
+]

@@ -10,6 +10,8 @@ import cat.teknos.oncolly.repositories.PatientRepository;
 import cat.teknos.oncolly.repositories.UserRepository;
 import cat.teknos.oncolly.utils.EntityMapper;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -23,6 +25,8 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/appointments")
 public class AppointmentController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AppointmentController.class);
+
     @Autowired private AppointmentRepository appointmentRepo;
     @Autowired private UserRepository userRepo;
     @Autowired private PatientRepository patientRepo;
@@ -33,6 +37,7 @@ public class AppointmentController {
     // ==========================================
     @GetMapping
     public ResponseEntity<List<AppointmentResponse>> getMyAppointments(Authentication auth) {
+        logger.info("Doctor {} fetching appointments", auth.getName());
         Doctor doctor = (Doctor) userRepo.findByEmail(auth.getName()).orElseThrow();
 
         // Fetch active appointments
@@ -50,6 +55,7 @@ public class AppointmentController {
     // ==========================================
     @PostMapping
     public ResponseEntity<?> createAppointment(@Valid @RequestBody CreateAppointmentRequest request, Authentication auth) {
+        logger.info("Doctor {} attempting to schedule appointment with patient {}", auth.getName(), request.patientId());
 
         Doctor doctor = (Doctor) userRepo.findByEmail(auth.getName()).orElseThrow();
         Patient patient = patientRepo.findById(request.patientId())
@@ -63,6 +69,7 @@ public class AppointmentController {
         );
 
         if (hasConflict) {
+            logger.warn("Time conflict for doctor {} at {}", doctor.getEmail(), request.startTime());
             return ResponseEntity.badRequest().body("Time slot is already booked!");
         }
 
@@ -79,6 +86,7 @@ public class AppointmentController {
         // Status defaults to CONFIRMED in Entity, or set it here explicitly
 
         appointmentRepo.save(appt);
+        logger.info("Appointment scheduled successfully: {}", appt.getId());
 
         return ResponseEntity.ok("Appointment scheduled.");
     }
@@ -88,6 +96,7 @@ public class AppointmentController {
     // ==========================================
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteAppointment(@PathVariable UUID id, Authentication auth) {
+        logger.info("Doctor {} requesting cancellation of appointment {}", auth.getName(), id);
 
         Appointment appt = appointmentRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Appointment not found"));
@@ -95,6 +104,7 @@ public class AppointmentController {
         // Check ownership
         Doctor doctor = (Doctor) userRepo.findByEmail(auth.getName()).orElseThrow();
         if (!appt.getDoctor().getId().equals(doctor.getId())) {
+            logger.warn("Unauthorized cancellation attempt by {} on appointment {}", doctor.getEmail(), id);
             return ResponseEntity.status(403).body("You cannot delete appointments that aren't yours.");
         }
 

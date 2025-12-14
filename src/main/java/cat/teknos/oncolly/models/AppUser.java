@@ -13,6 +13,12 @@ import lombok.*;
 @AllArgsConstructor
 public class AppUser extends BaseEntity {
 
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
     @Column(unique = true, nullable = false)
     private String email;
 

@@ -52,4 +52,14 @@ public class JwtUtils {
                 .getPayload()
                 .getSubject();
     }
+
+    // 4. EXTRACT ROLE FROM TOKEN
+    public String getRoleFromToken(String token) {
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("role", String.class);
+    }
 }

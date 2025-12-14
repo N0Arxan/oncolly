@@ -1,5 +1,6 @@
 package cat.teknos.oncolly.utils;
 
+import cat.teknos.oncolly.models.Doctor;
 import cat.teknos.oncolly.dtos.activity.ActivityResponse;
 import cat.teknos.oncolly.dtos.appointment.AppointmentResponse;
 import cat.teknos.oncolly.dtos.patient.PatientResponse;
@@ -15,9 +16,23 @@ public class EntityMapper {
     public PatientResponse toPatientResponse(Patient patient) {
         return new PatientResponse(
                 patient.getId(),
+                patient.getFirstName(),
+                patient.getLastName(),
                 patient.getEmail(),
                 patient.getPhoneNumber(),
                 patient.getDateOfBirth()
+        );
+    }
+
+    // Convert Doctor Entity -> PatientResponse DTO (Reusing DTO as requested)
+    public PatientResponse toPatientResponse(Doctor doctor) {
+        return new PatientResponse(
+                doctor.getId(),
+                doctor.getFirstName(),
+                doctor.getLastName(),
+                doctor.getEmail(),
+                null, // Doctor has no phone in this model
+                null  // Doctor has no DOB in this model
         );
     }
 

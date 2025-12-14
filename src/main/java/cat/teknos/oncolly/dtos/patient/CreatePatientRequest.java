@@ -5,6 +5,12 @@ import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 
 public record CreatePatientRequest(
+        @NotBlank(message = "First name is required")
+        String firstName,
+
+        @NotBlank(message = "Last name is required")
+        String lastName,
+
         @NotBlank(message = "Email is required")
         @Email(message = "Invalid email format")
         String email,
