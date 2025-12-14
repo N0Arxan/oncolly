@@ -100,4 +100,11 @@ public class PatientController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/profile")
+    public ResponseEntity<?> getPatientProfile(Authentication auth) {
+        Patient patient = (Patient) userRepo.findByEmail(auth.getName()).orElseThrow();
+        PatientResponse response = mapper.toPatientResponse(patient);
+        return ResponseEntity.ok(response);
+    }
 }
